@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  
+  <!-- Fondo azul -->
+  <rect width="400" height="400" fill="#1e40af"/>
+  
+  <!-- Forma de la cámara en blanco -->
+  <g transform="translate(200, 180)">
+    
+    <!-- Contorno principal arqueado -->
+    <path d="M -90 -60
+             Q -80 -80 -40 -85
+             Q 0 -90 40 -85
+             Q 80 -80 90 -60
+             L 90 70
+             L -90 70
+             Z"
+          fill="#ffffff"/>
+    
+    <!-- Puerta -->
+    <rect x="-30" y="-40" width="60" height="100" 
+          fill="#1e40af"
+          rx="4"/>
+    
+    <!-- Ventana de la puerta -->
+    <rect x="-20" y="-25" width="40" height="30" 
+          fill="#ffffff"
+          rx="3"/>
+    
+    <!-- Bisagras -->
+    <rect x="-35" y="-25" width="4" height="15" fill="#ffffff" rx="1"/>
+    <rect x="-35" y="10" width="4" height="15" fill="#ffffff" rx="1"/>
+    <rect x="-35" y="45" width="4" height="15" fill="#ffffff" rx="1"/>
+    
+  </g>
+  
+  <!-- Texto SHELTER -->
+  <text x="200" y="330" 
+        font-family="Arial, Helvetica, sans-serif" 
+        font-size="48" 
+        font-weight="700" 
+        fill="#ffffff" 
+        text-anchor="middle"
+        letter-spacing="8">SHELTER</text>
+  
+</svg>
