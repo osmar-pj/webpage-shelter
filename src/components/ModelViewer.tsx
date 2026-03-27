@@ -1,11 +1,12 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
-import { useGLTF, OrbitControls, Text, Line, Environment, PerspectiveCamera } from '@react-three/drei'
+import { useGLTF, OrbitControls, Environment, PerspectiveCamera } from '@react-three/drei'
 import * as THREE from 'three'
 import camaraModel from '../assets/camara.glb'
 import camaraAbiertoModel from '../assets/camara_abierto.glb'
+import MiningMarker from './MiningMarker'
 
-interface Marker {
+export interface Marker {
   id: string
   position: [number, number, number]
   text: string
@@ -13,240 +14,10 @@ interface Marker {
   tagPosition?: [number, number, number]
 }
 
-interface MarkerComponentProps {
-  marker: Marker
-  onPositionUpdate?: (id: string, newPosition: [number, number, number], newNormal: [number, number, number], tagPosition: [number, number, number]) => void
-}
-
+// Tipos de materiales y modos de iluminación
 type MaterialType = 'standard' | 'metallic' | 'gold' | 'glass'
 type LightingMode = 'studio' | 'dramatic'
 
-function MarkerComponent({ marker, onPositionUpdate }: MarkerComponentProps) {
-  const { camera, raycaster, pointer, gl } = useThree()
-  const tagGroupRef = useRef<THREE.Group>(null)
-  const isDraggingRef = useRef(false)
-  const dragPlaneRef = useRef<THREE.Plane | null>(null)
-
-  // Calcular punto flotante: usar tagPosition si existe, sino calcularlo
-  const floatingPoint = useMemo(() => {
-    if (marker.tagPosition) {
-      return new THREE.Vector3(...marker.tagPosition)
-    }
-    
-    const surfacePoint = new THREE.Vector3(...marker.position)
-    const normal = new THREE.Vector3(...marker.normal)
-    
-    // Dirección desde el punto hacia la cámara
-    const toCamera = camera.position.clone().sub(surfacePoint).normalize()
-    
-    // Combinar normal y dirección hacia cámara para mejor visibilidad
-    const direction = normal.clone().add(toCamera.multiplyScalar(0.5)).normalize()
-    
-    // Distancia del tag flotante
-    const distance = 0.5
-    
-    return surfacePoint.clone().add(direction.multiplyScalar(distance))
-  }, [marker.position, marker.normal, marker.tagPosition, camera.position])
-
-  // Hacer que todo el tag rote para mirar a la cámara y actualizar posición durante arrastre
-  useFrame(() => {
-    if (tagGroupRef.current) {
-      if (!isDraggingRef.current) {
-        tagGroupRef.current.lookAt(camera.position)
-      } else {
-        // Durante el arrastre, actualizar posición usando raycaster
-        raycaster.setFromCamera(pointer, camera)
-        if (dragPlaneRef.current) {
-          const intersection = new THREE.Vector3()
-          raycaster.ray.intersectPlane(dragPlaneRef.current, intersection)
-          if (intersection) {
-            tagGroupRef.current.position.copy(intersection)
-            
-            // Actualizar posición del marcador en tiempo real
-            const toCamera = camera.position.clone().sub(intersection).normalize()
-            const normal = new THREE.Vector3(...marker.normal)
-            const direction = normal.clone().add(toCamera.multiplyScalar(0.5)).normalize()
-            const newSurfacePoint = intersection.clone().sub(direction.multiplyScalar(0.5))
-            const newNormal = direction.normalize()
-            
-            if (onPositionUpdate) {
-              onPositionUpdate(
-                marker.id,
-                [newSurfacePoint.x, newSurfacePoint.y, newSurfacePoint.z],
-                [newNormal.x, newNormal.y, newNormal.z],
-                [intersection.x, intersection.y, intersection.z]
-              )
-            }
-          }
-        }
-      }
-    }
-  })
-
-  // Handlers para arrastrar el tag
-  const handlePointerDown = (e: any) => {
-    e.stopPropagation()
-    isDraggingRef.current = true
-    
-    // Crear un plano perpendicular a la cámara para el arrastre
-    const cameraDirection = new THREE.Vector3()
-    camera.getWorldDirection(cameraDirection)
-    const planePoint = floatingPoint.clone()
-    dragPlaneRef.current = new THREE.Plane().setFromNormalAndCoplanarPoint(
-      cameraDirection,
-      planePoint
-    )
-    
-    if (gl.domElement) {
-      gl.domElement.style.cursor = 'grabbing'
-    }
-  }
-
-
-  const handlePointerUp = () => {
-    if (isDraggingRef.current && tagGroupRef.current) {
-      isDraggingRef.current = false
-      if (gl.domElement) {
-        gl.domElement.style.cursor = 'default'
-      }
-      
-      // Obtener la posición final
-      const finalPosition = tagGroupRef.current.position.clone()
-      const toCamera = camera.position.clone().sub(finalPosition).normalize()
-      const normal = new THREE.Vector3(...marker.normal)
-      const direction = normal.clone().add(toCamera.multiplyScalar(0.5)).normalize()
-      const newSurfacePoint = finalPosition.clone().sub(direction.multiplyScalar(0.5))
-      
-      // Calcular la nueva normal (dirección desde el punto de superficie hacia el tag)
-      const newNormal = direction.normalize()
-      
-      const newPosition: [number, number, number] = [
-        newSurfacePoint.x,
-        newSurfacePoint.y,
-        newSurfacePoint.z
-      ]
-      
-      const newNormalArray: [number, number, number] = [
-        newNormal.x,
-        newNormal.y,
-        newNormal.z
-      ]
-      
-      const tagPosition: [number, number, number] = [
-        finalPosition.x,
-        finalPosition.y,
-        finalPosition.z
-      ]
-      
-      console.log('Nueva posición del marcador:', {
-        id: marker.id,
-        text: marker.text,
-        position: newPosition,
-        normal: newNormalArray,
-        tagPosition: tagPosition
-      })
-      
-      if (onPositionUpdate) {
-        onPositionUpdate(marker.id, newPosition, newNormalArray, tagPosition)
-      }
-    }
-  }
-
-  // Agregar event listeners globales para el arrastre
-  useEffect(() => {
-    const handleMouseUp = () => {
-      handlePointerUp()
-    }
-
-    window.addEventListener('mouseup', handleMouseUp)
-
-    return () => {
-      window.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [])
-
-  return (
-    <group>
-      {/* Punto rojo en la superficie */}
-      <mesh position={marker.position}>
-        <sphereGeometry args={[0.015, 16, 16]} />
-        <meshStandardMaterial color="#ff4444" emissive="#ff0000" emissiveIntensity={0.3} />
-      </mesh>
-
-      {/* Línea punteada desde punto flotante hacia punto marcado */}
-      <Line
-        points={[floatingPoint, new THREE.Vector3(...marker.position)]}
-        color="#4ade80"
-        lineWidth={1.5}
-        dashed={true}
-        dashScale={20}
-        dashSize={0.1}
-        gapSize={0.1}
-      />
-
-      {/* Tag flotante - Diseño minimalista moderno */}
-      <group 
-        ref={tagGroupRef} 
-        position={[floatingPoint.x, floatingPoint.y, floatingPoint.z]}
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-      >
-        {/* Sombra suave */}
-        <mesh position={[0.004, -0.004, -0.01]}>
-          <planeGeometry args={[0.5, 0.2]} />
-          <meshStandardMaterial color="#000000" opacity={0.2} transparent />
-        </mesh>
-
-        {/* Fondo blanco con borde sutil */}
-        <mesh>
-          <planeGeometry args={[0.48, 0.18]} />
-          <meshStandardMaterial 
-            color="#ffffff" 
-            opacity={0.95} 
-            transparent={true}
-            roughness={0.1}
-            metalness={0.1}
-          />
-        </mesh>
-
-        {/* Borde delgado gris */}
-        <mesh>
-          <ringGeometry args={[0.24, 0.241, 32]} />
-          <meshStandardMaterial 
-            color="#e5e7eb" 
-            opacity={1} 
-            transparent={false}
-          />
-        </mesh>
-
-        {/* Barra superior azul */}
-        <mesh position={[0, 0.085, 0.001]}>
-          <planeGeometry args={[0.48, 0.02]} />
-          <meshStandardMaterial 
-            color="#3b82f6" 
-            opacity={1} 
-            transparent={false}
-          />
-        </mesh>
-
-        {/* Texto oscuro legible centrado */}
-        <Text
-          position={[0, 0, 0.01]}
-          fontSize={0.05}
-          color="#1f2937"
-          anchorX="center"
-          anchorY="middle"
-          textAlign="center"
-          outlineWidth={0.01}
-          outlineColor="#ffffff"
-          maxWidth={0.42}
-        >
-          {marker.text || 'Marcador'}
-        </Text>
-      </group>
-    </group>
-  )
-}
 
 function Model({ 
   onModelClick, 
@@ -684,11 +455,13 @@ export default function ModelViewer() {
         gl={{
           antialias: true,
           alpha: true,
-          powerPreference: "high-performance"
+          powerPreference: "high-performance",
+          preserveDrawingBuffer: true
         }}
-        onCreated={({ gl }) => {
+        onCreated={({ gl, scene }) => {
           gl.shadowMap.enabled = true
           gl.shadowMap.type = THREE.PCFSoftShadowMap
+          scene.background = null
         }}
       >
         <PerspectiveCamera makeDefault position={[0, 0, 5]} />
@@ -701,14 +474,14 @@ export default function ModelViewer() {
           spacePressed={spacePressed}
         />
         {markers.map((marker) => (
-          <MarkerComponent 
+          <MiningMarker 
             key={marker.id} 
             marker={marker} 
             onPositionUpdate={handleMarkerPositionUpdate}
           />
         ))}
         <Controls autoRotate={autoRotate} spacePressed={spacePressed} />
-        <Environment preset="studio" />
+        <Environment preset="night" />
         <ScreenshotCapture onCapture={captureScreenshot} />
       </Canvas>
 

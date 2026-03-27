@@ -1,120 +1,56 @@
 @import "tailwindcss";
 
-/* Fondo de mina subterránea */
+/* Fondo de mina subterránea realista */
 .mine-background {
-  background: 
-    /* Gradiente base oscuro */
-    linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%),
-    /* Textura de roca con ruido */
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(40, 40, 40, 0.3) 2px,
-      rgba(40, 40, 40, 0.3) 4px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 2px,
-      rgba(35, 35, 35, 0.3) 2px,
-      rgba(35, 35, 35, 0.3) 4px
-    );
-  background-size: 100% 100%, 20px 20px, 20px 20px;
+  background-color: #000;
+  background-image: 
+    linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.85)),
+    url("https://images.unsplash.com/photo-1518116246348-735990267ce2?q=80&w=1920");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   position: relative;
   overflow: hidden;
 }
 
-/* Efecto de profundidad del socavón */
+/* Efecto de viñeta y profundidad minera */
 .mine-background::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    /* Perspectiva del túnel */
-    radial-gradient(
-      ellipse at center 30%,
-      rgba(60, 60, 60, 0.4) 0%,
-      rgba(30, 30, 30, 0.6) 40%,
-      rgba(20, 20, 20, 0.8) 70%,
-      rgba(10, 10, 10, 1) 100%
-    ),
-    /* Variaciones de roca */
-    repeating-conic-gradient(
-      from 0deg at 30% 40%,
-      rgba(50, 50, 50, 0.1) 0deg,
-      rgba(30, 30, 30, 0.2) 15deg,
-      rgba(50, 50, 50, 0.1) 30deg
-    );
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.95) 100%);
   pointer-events: none;
 }
 
-/* Brillos de minerales */
+/* Brillos de minerales (Vetas de oro/plata) */
 .mine-background::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-image: 
-    /* Minerales dorados/amarillos */
-    radial-gradient(circle at 15% 25%, rgba(255, 215, 0, 0.4) 0%, transparent 2%),
-    radial-gradient(circle at 35% 60%, rgba(255, 200, 0, 0.3) 0%, transparent 1.5%),
-    radial-gradient(circle at 55% 35%, rgba(255, 180, 0, 0.35) 0%, transparent 2%),
-    radial-gradient(circle at 75% 70%, rgba(255, 190, 0, 0.3) 0%, transparent 1.8%),
-    radial-gradient(circle at 85% 20%, rgba(255, 210, 0, 0.4) 0%, transparent 2%),
-    radial-gradient(circle at 25% 80%, rgba(255, 195, 0, 0.3) 0%, transparent 1.5%),
-    radial-gradient(circle at 65% 15%, rgba(255, 205, 0, 0.35) 0%, transparent 2%),
-    radial-gradient(circle at 45% 85%, rgba(255, 185, 0, 0.3) 0%, transparent 1.8%),
-    /* Minerales plateados */
-    radial-gradient(circle at 20% 45%, rgba(192, 192, 192, 0.25) 0%, transparent 1.5%),
-    radial-gradient(circle at 70% 50%, rgba(200, 200, 200, 0.2) 0%, transparent 1.5%),
-    radial-gradient(circle at 40% 20%, rgba(180, 180, 180, 0.25) 0%, transparent 1.8%),
-    radial-gradient(circle at 90% 60%, rgba(190, 190, 190, 0.2) 0%, transparent 1.5%);
-  animation: mineralShine 4s ease-in-out infinite;
+    /* Vetas de Oro (especular) */
+    radial-gradient(circle at 15% 20%, rgba(255, 215, 0, 0.4) 0%, transparent 1%),
+    radial-gradient(circle at 55% 45%, rgba(255, 200, 0, 0.3) 0%, transparent 1.5%),
+    radial-gradient(circle at 85% 75%, rgba(255, 215, 0, 0.4) 0%, transparent 1.2%),
+    /* Vetas de Cuarzo */
+    radial-gradient(circle at 40% 10%, rgba(200, 230, 255, 0.2) 0%, transparent 1.3%),
+    radial-gradient(circle at 95% 85%, rgba(180, 200, 255, 0.15) 0%, transparent 1%),
+    radial-gradient(circle at 10% 90%, rgba(180, 200, 255, 0.2) 0%, transparent 1.1%);
+  animation: mineralPulse 8s ease-in-out infinite alternate;
   pointer-events: none;
 }
 
-/* Animación de brillo de minerales */
-@keyframes mineralShine {
-  0%, 100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
+@keyframes rockyShimmer {
+  0% { opacity: 0.5; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.02); }
 }
 
-/* Efecto de textura rocosa adicional */
+/* Efecto de viñeta para profundidad */
 .mine-background {
-  box-shadow: 
-    inset 0 0 100px rgba(0, 0, 0, 0.8),
-    inset 0 0 200px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 150px 50px rgba(0, 0, 0, 0.9);
 }
 
-/* Partículas de polvo/minerales flotantes */
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0) translateX(0);
-    opacity: 0.3;
-  }
-  50% {
-    transform: translateY(-20px) translateX(10px);
-    opacity: 0.6;
-  }
-}
-
-.mine-background {
-  position: relative;
-}
-
-/* Efecto de iluminación de linterna */
-.mine-background {
-  background-blend-mode: multiply, overlay, normal;
+/* Partículas de polvo en suspensión */
+.mine-background::after {
+  box-shadow: inset 0 0 100px rgba(0,0,0,0.5);
 }
