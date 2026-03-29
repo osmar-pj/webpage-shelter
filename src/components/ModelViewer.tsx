@@ -1,10 +1,72 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { useGLTF, OrbitControls, Environment, PerspectiveCamera } from '@react-three/drei'
 import * as THREE from 'three'
 import camaraModel from '../assets/camara.glb'
 import camaraAbiertoModel from '../assets/camara_abierto.glb'
+import acInsideModel from '../assets/air_conditioner_inside.glb'
+import acOutsideModel from '../assets/air_conditioner_outside.glb'
+import electricalPanelModel from '../assets/electrical_control_panel_2.glb'
+import gasDetectorModel from '../assets/gas-detector.glb'
+import batteryModel from '../assets/battery.glb'
 import MiningMarker from './MiningMarker'
+
+// --- SECCIÓN DE COMPONENTES ADICIONALES (EQUIPAMIENTO) ---
+// Aquí puedes añadir o modificar los equipos del refugio.
+// Cambia 'position={[x, y, z]}', 'rotation={[x, y, z]}' o 'scale' para ajustarlos.
+
+function EquipmentItem({ path, position, rotation = [0, 0, 0], scale = 0.05 }: any) {
+  const gltf = useGLTF(path) as any
+  return (
+    <primitive
+      object={gltf.scene.clone()}
+      position={position}
+      rotation={rotation}
+      scale={scale}
+      castShadow
+      receiveShadow
+    />
+  )
+}
+
+function ShelterEquipments() {
+  return (
+    <group>
+      {/* 1. AIRE ACONDICIONADO INTERIOR (SPLIT) */}
+      {/* Modifica aquí: position, scale o rotation para probar */}
+      <EquipmentItem
+        path={acInsideModel}
+        position={[0.5, 1.3, -6.1]}
+        rotation={[0, Math.PI / 50, 0]}
+        scale={0.045}
+      />
+
+      {/* 2. AIRE ACONDICIONADO EXTERIOR (COMPRESOR) */}
+      <EquipmentItem
+        path={acOutsideModel}
+        position={[0.2, 1.2, -7]}
+        rotation={[0, 9.4, 0]}
+        scale={0.001}
+      />
+
+      {/* 3. TABLERO ELÉCTRICO */}
+      <EquipmentItem
+        path={electricalPanelModel}
+        position={[0.4, 0.1, -7.1]}
+        rotation={[0, 7.9, 0]}
+        scale={0.5}
+      />
+
+      {/* 4. DETECTOR DE GAS */}
+      <EquipmentItem
+        path={gasDetectorModel}
+        position={[0.5, 0.7, -6.1]}
+        rotation={[0, 0, 0]}
+        scale={0.3}
+      />
+    </group>
+  )
+}
 
 export interface Marker {
   id: string
@@ -18,14 +80,13 @@ export interface Marker {
 type MaterialType = 'standard' | 'metallic' | 'gold' | 'glass'
 type LightingMode = 'studio' | 'dramatic'
 
-
-function Model({ 
-  onModelClick, 
-  materialType, 
-  exploded, 
+function Model({
+  onModelClick,
+  materialType,
+  exploded,
   modelFile,
   spacePressed
-}: { 
+}: {
   onModelClick: (position: THREE.Vector3, normal: THREE.Vector3, tagPosition: THREE.Vector3) => void
   materialType: MaterialType
   exploded: boolean
@@ -58,7 +119,7 @@ function Model({
       scene.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           const material = child.material as THREE.MeshStandardMaterial
-          
+
           switch (materialType) {
             case 'metallic':
               child.material = new THREE.MeshStandardMaterial({
@@ -108,7 +169,7 @@ function Model({
             const direction = child.position.clone().sub(center).normalize()
             const offset = exploded ? direction.multiplyScalar(0.5) : new THREE.Vector3(0, 0, 0)
             const targetPos = originalPos.clone().add(offset)
-            
+
             // Animación suave con easing
             child.position.lerp(targetPos, 0.1)
           }
@@ -121,11 +182,11 @@ function Model({
   useEffect(() => {
     boxRef.current = new THREE.Box3().setFromObject(scene)
     centerRef.current = boxRef.current.getCenter(new THREE.Vector3())
-    
+
     const size = boxRef.current.getSize(new THREE.Vector3())
     const maxDim = Math.max(size.x, size.y, size.z)
     const distance = maxDim * 2
-    
+
     // Posicionar cámara en el eje Z para ver el plano XY
     camera.position.set(
       centerRef.current.x,
@@ -172,11 +233,11 @@ function Model({
 
   const handleDoubleClick = (event: any) => {
     event.stopPropagation()
-    
+
     if (event.intersections && event.intersections.length > 0) {
       const intersection = event.intersections[0]
       const position = intersection.point
-      
+
       let worldNormal = new THREE.Vector3(0, 1, 0)
       if (intersection.face) {
         worldNormal.copy(intersection.face.normal)
@@ -185,26 +246,30 @@ function Model({
         }
         worldNormal.normalize()
       }
-      
+
       // Calcular tagPosition
       const toCamera = camera.position.clone().sub(position).normalize()
       const direction = worldNormal.clone().add(toCamera.multiplyScalar(0.5)).normalize()
       const distance = 0.5
       const tagPosition = position.clone().add(direction.multiplyScalar(distance))
-      
+
       onModelClick(position, worldNormal, tagPosition)
     }
   }
 
   return (
     <group ref={modelRef} onDoubleClick={handleDoubleClick}>
-      <primitive 
-        object={scene} 
-        scale={1} 
-        position={[0, 0, 0]}
+      <primitive
+        object={scene}
+        scale={1}
+        position={[0, -0.5, 0]}
         castShadow
         receiveShadow
       />
+      {/* SECCIÓN DE EQUIPAMIENTO INTERIOR/EXTERIOR */}
+      <Suspense fallback={null}>
+        <ShelterEquipments />
+      </Suspense>
     </group>
   )
 }
@@ -213,16 +278,16 @@ function Lighting({ mode }: { mode: LightingMode }) {
   return (
     <>
       <ambientLight intensity={mode === 'studio' ? 0.4 : 0.2} />
-      <directionalLight 
-        position={[5, 5, 3]} 
+      <directionalLight
+        position={[5, 5, 3]}
         intensity={mode === 'studio' ? 0.8 : 1.2}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
         color="#ffaa44"
       />
-      <directionalLight 
-        position={[-5, -5, -3]} 
+      <directionalLight
+        position={[-5, -5, -3]}
         intensity={mode === 'studio' ? 0.3 : 0.5}
         color="#88aaff"
       />
@@ -247,7 +312,7 @@ function Lighting({ mode }: { mode: LightingMode }) {
 function Controls({ autoRotate, spacePressed }: { autoRotate: boolean, spacePressed: boolean }) {
   const { scene, camera } = useThree()
   const controlsRef = useRef<any>(null)
-  
+
   useEffect(() => {
     if (controlsRef.current && scene) {
       const box = new THREE.Box3().setFromObject(scene)
@@ -269,7 +334,7 @@ function Controls({ autoRotate, spacePressed }: { autoRotate: boolean, spacePres
   }, [autoRotate, spacePressed])
 
   return (
-    <OrbitControls 
+    <OrbitControls
       ref={controlsRef}
       enableZoom={!spacePressed}
       enablePan={!spacePressed}
@@ -286,7 +351,7 @@ function Controls({ autoRotate, spacePressed }: { autoRotate: boolean, spacePres
 
 function ScreenshotCapture({ onCapture }: { onCapture: () => void }) {
   const { gl } = useThree()
-  
+
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === 's' || e.key === 'S') {
@@ -299,7 +364,7 @@ function ScreenshotCapture({ onCapture }: { onCapture: () => void }) {
 
   // Exponer gl para captura
   useEffect(() => {
-    ;(window as any).__glRenderer = gl
+    ; (window as any).__glRenderer = gl
   }, [gl])
 
   return null
@@ -391,7 +456,7 @@ export default function ModelViewer() {
 
   const handleModelClick = (position: THREE.Vector3, normal: THREE.Vector3, tagPosition: THREE.Vector3) => {
     const text = prompt('Ingresa el texto para este marcador:') || 'Marcador'
-    
+
     const newMarker: Marker = {
       id: `marker-${Date.now()}`,
       position: [position.x, position.y, position.z],
@@ -402,7 +467,7 @@ export default function ModelViewer() {
 
     const updatedMarkers = [...markers, newMarker]
     setMarkers(updatedMarkers)
-    
+
     // Mostrar JSON actualizado en consola para copiar a markers.json
     console.log('Marcadores actualizados:', updatedMarkers)
     console.log('JSON para markers.json:', JSON.stringify(updatedMarkers, null, 2))
@@ -410,14 +475,14 @@ export default function ModelViewer() {
   }
 
   const handleMarkerPositionUpdate = (
-    id: string, 
-    newPosition: [number, number, number], 
+    id: string,
+    newPosition: [number, number, number],
     newNormal: [number, number, number],
     tagPosition: [number, number, number]
   ) => {
     setMarkers(prevMarkers => {
-      const updated = prevMarkers.map(marker => 
-        marker.id === id 
+      const updated = prevMarkers.map(marker =>
+        marker.id === id
           ? { ...marker, position: newPosition, normal: newNormal, tagPosition: tagPosition }
           : marker
       )
@@ -466,22 +531,22 @@ export default function ModelViewer() {
       >
         <PerspectiveCamera makeDefault position={[0, 0, 5]} />
         <Lighting mode={lightingMode} />
-        <Model 
-          onModelClick={handleModelClick} 
+        <Model
+          onModelClick={handleModelClick}
           materialType={materialType}
           exploded={exploded}
           modelFile={currentModel}
           spacePressed={spacePressed}
         />
         {markers.map((marker) => (
-          <MiningMarker 
-            key={marker.id} 
-            marker={marker} 
+          <MiningMarker
+            key={marker.id}
+            marker={marker}
             onPositionUpdate={handleMarkerPositionUpdate}
           />
         ))}
         <Controls autoRotate={autoRotate} spacePressed={spacePressed} />
-        <Environment preset="night" />
+        <Environment preset="warehouse" background={false} />
         <ScreenshotCapture onCapture={captureScreenshot} />
       </Canvas>
 
@@ -496,126 +561,126 @@ export default function ModelViewer() {
       </div>
 
       {/* Grid de Cards - Distribución equilibrada e innovadora */}
-      
+
       {/* Columna Izquierda - Cards Informativos */}
       <div className="absolute top-32 left-4 flex flex-col gap-4">
         {/* Card de Mantenimiento */}
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl w-64 hover:scale-105 transition-transform duration-300">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          Mantenimiento
-        </h3>
-        <div className="space-y-2 text-white/80 text-xs">
-          <div className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
+            <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span>Revisión trimestral recomendada</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span>Limpieza de filtros mensual</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span>Verificación de baterías cada 6 meses</span>
+            Mantenimiento
+          </h3>
+          <div className="space-y-2 text-white/80 text-xs">
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Revisión trimestral recomendada</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Limpieza de filtros mensual</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Verificación de baterías cada 6 meses</span>
+            </div>
           </div>
         </div>
-      </div>
 
         {/* Card de Calibración */}
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl w-64 hover:scale-105 transition-transform duration-300">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          Calibración
-        </h3>
-        <div className="space-y-2 text-white/80 text-xs">
-          <div className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
+            <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            <span>Sensores de gas calibrados</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span>Sistema de monitoreo verificado</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span>Calibración anual certificada</span>
+            Calibración
+          </h3>
+          <div className="space-y-2 text-white/80 text-xs">
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Sensores de gas calibrados</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Sistema de monitoreo verificado</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Calibración anual certificada</span>
+            </div>
           </div>
         </div>
-      </div>
 
         {/* Card de Certificaciones */}
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl w-64 hover:scale-105 transition-transform duration-300">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-          </svg>
-          Certificaciones
-        </h3>
-        <div className="space-y-2 text-white/80 text-xs">
-          <div className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
+            <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
             </svg>
-            <span>ISO 9001:2015</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span>Normativa minera vigente</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span>Certificación de seguridad</span>
+            Certificaciones
+          </h3>
+          <div className="space-y-2 text-white/80 text-xs">
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>ISO 9001:2015</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Normativa minera vigente</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Certificación de seguridad</span>
+            </div>
           </div>
         </div>
-      </div>
 
         {/* Card de Estado del Sistema */}
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl w-64 hover:scale-105 transition-transform duration-300">
-        <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
-          <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Estado del Sistema
-        </h3>
-        <div className="space-y-2 text-white/80 text-xs">
-          <div className="flex items-center justify-between">
-            <span>Oxígeno</span>
-            <span className="text-green-400 font-semibold">✓ Operativo</span>
+          <h3 className="text-white font-semibold mb-3 text-sm flex items-center gap-2">
+            <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Estado del Sistema
+          </h3>
+          <div className="space-y-2 text-white/80 text-xs">
+            <div className="flex items-center justify-between">
+              <span>Oxígeno</span>
+              <span className="text-green-400 font-semibold">✓ Operativo</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Ventilación</span>
+              <span className="text-green-400 font-semibold">✓ Operativo</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Iluminación</span>
+              <span className="text-green-400 font-semibold">✓ Operativo</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Comunicación</span>
+              <span className="text-green-400 font-semibold">✓ Operativo</span>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span>Ventilación</span>
-            <span className="text-green-400 font-semibold">✓ Operativo</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Iluminación</span>
-            <span className="text-green-400 font-semibold">✓ Operativo</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Comunicación</span>
-            <span className="text-green-400 font-semibold">✓ Operativo</span>
-          </div>
-        </div>
         </div>
       </div>
 
@@ -659,8 +724,8 @@ export default function ModelViewer() {
           </button>
           <div className={`overflow-hidden transition-all duration-300 ${contactsExpanded ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="px-4 pb-4 space-y-3">
-              <a 
-                href="mailto:info@gunjop.com" 
+              <a
+                href="mailto:info@gunjop.com"
                 className="flex items-center gap-2 text-white/90 text-xs hover:text-white transition-colors"
               >
                 <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -668,8 +733,8 @@ export default function ModelViewer() {
                 </svg>
                 <span>info@gunjop.com</span>
               </a>
-              <a 
-                href="mailto:andre.jove@gunjop.com" 
+              <a
+                href="mailto:andre.jove@gunjop.com"
                 className="flex items-center gap-2 text-white/90 text-xs hover:text-white transition-colors"
               >
                 <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -710,11 +775,10 @@ export default function ModelViewer() {
         <div className="flex gap-3 items-center">
           <button
             onClick={() => setAutoRotate(!autoRotate)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-              autoRotate
-                ? 'bg-green-500 text-white shadow-lg'
-                : 'bg-white/10 text-white/80 hover:bg-white/20'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${autoRotate
+              ? 'bg-green-500 text-white shadow-lg'
+              : 'bg-white/10 text-white/80 hover:bg-white/20'
+              }`}
           >
             <span className="flex items-center gap-2">
               {autoRotate ? (
@@ -732,11 +796,10 @@ export default function ModelViewer() {
 
           <button
             onClick={() => setExploded(!exploded)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-              exploded
-                ? 'bg-purple-500 text-white shadow-lg'
-                : 'bg-white/10 text-white/80 hover:bg-white/20'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${exploded
+              ? 'bg-purple-500 text-white shadow-lg'
+              : 'bg-white/10 text-white/80 hover:bg-white/20'
+              }`}
           >
             <span className="flex items-center gap-2">
               {exploded ? (
@@ -779,11 +842,10 @@ export default function ModelViewer() {
 
           <button
             onClick={() => setCurrentModel(currentModel === camaraModel ? camaraAbiertoModel : camaraModel)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-              currentModel === camaraAbiertoModel
-                ? 'bg-blue-500 text-white shadow-lg'
-                : 'bg-white/10 text-white/80 hover:bg-white/20'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${currentModel === camaraAbiertoModel
+              ? 'bg-blue-500 text-white shadow-lg'
+              : 'bg-white/10 text-white/80 hover:bg-white/20'
+              }`}
           >
             <span className="flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

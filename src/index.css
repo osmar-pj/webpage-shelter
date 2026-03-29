@@ -1,43 +1,23 @@
 @import "tailwindcss";
 
-/* Fondo de mina subterránea realista */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #0d0905 !important;
+  background-image: url("https://i.imgur.com/IJYg1z3.jpeg") !important;
+  background-size: cover !important;
+  background-position: center bottom !important;
+  background-attachment: fixed !important;
+  background-repeat: no-repeat !important;
+}
+
 .mine-background {
-  background-color: #000;
-  background-image: 
-    linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.85)),
-    url("https://images.unsplash.com/photo-1518116246348-735990267ce2?q=80&w=1920");
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  background: transparent !important;
   position: relative;
   overflow: hidden;
-}
-
-/* Efecto de viñeta y profundidad minera */
-.mine-background::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.95) 100%);
-  pointer-events: none;
-}
-
-/* Brillos de minerales (Vetas de oro/plata) */
-.mine-background::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: 
-    /* Vetas de Oro (especular) */
-    radial-gradient(circle at 15% 20%, rgba(255, 215, 0, 0.4) 0%, transparent 1%),
-    radial-gradient(circle at 55% 45%, rgba(255, 200, 0, 0.3) 0%, transparent 1.5%),
-    radial-gradient(circle at 85% 75%, rgba(255, 215, 0, 0.4) 0%, transparent 1.2%),
-    /* Vetas de Cuarzo */
-    radial-gradient(circle at 40% 10%, rgba(200, 230, 255, 0.2) 0%, transparent 1.3%),
-    radial-gradient(circle at 95% 85%, rgba(180, 200, 255, 0.15) 0%, transparent 1%),
-    radial-gradient(circle at 10% 90%, rgba(180, 200, 255, 0.2) 0%, transparent 1.1%);
-  animation: mineralPulse 8s ease-in-out infinite alternate;
-  pointer-events: none;
+  height: 100vh;
 }
 
 @keyframes rockyShimmer {
