@@ -8,7 +8,6 @@ import acInsideModel from '../assets/air_conditioner_inside.glb'
 import acOutsideModel from '../assets/air_conditioner_outside.glb'
 import electricalPanelModel from '../assets/electrical_control_panel_2.glb'
 import gasDetectorModel from '../assets/gas-detector.glb'
-import batteryModel from '../assets/battery.glb'
 import MiningMarker from './MiningMarker'
 
 // --- SECCIÓN DE COMPONENTES ADICIONALES (EQUIPAMIENTO) ---
