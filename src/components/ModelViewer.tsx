@@ -7,8 +7,11 @@ import camaraAbiertoModel from '../assets/camara_abierto.glb'
 import acInsideModel from '../assets/air_conditioner_inside.glb'
 import acOutsideModel from '../assets/air_conditioner_outside.glb'
 import electricalPanelModel from '../assets/electrical_control_panel_2.glb'
-import gasDetectorModel from '../assets/gas-detector.glb'
+// import gasDetectorModel from '../assets/gas-detector.glb'
+import DomeCamera from './DomeCamera'
+import GasManifold from './GasManifold'
 import MiningMarker from './MiningMarker'
+import VentilationPipe from './VentilationPipe'
 
 // --- SECCIÓN DE COMPONENTES ADICIONALES (EQUIPAMIENTO) ---
 // Aquí puedes añadir o modificar los equipos del refugio.
@@ -35,7 +38,7 @@ function ShelterEquipments() {
       {/* Modifica aquí: position, scale o rotation para probar */}
       <EquipmentItem
         path={acInsideModel}
-        position={[0.5, 1.3, -6.1]}
+        position={[0.0, 1.3, -6.1]}
         rotation={[0, Math.PI / 50, 0]}
         scale={0.045}
       />
@@ -43,7 +46,7 @@ function ShelterEquipments() {
       {/* 2. AIRE ACONDICIONADO EXTERIOR (COMPRESOR) */}
       <EquipmentItem
         path={acOutsideModel}
-        position={[0.2, 1.2, -7]}
+        position={[0.75, 1.2, -6.84]}
         rotation={[0, 9.4, 0]}
         scale={0.001}
       />
@@ -51,18 +54,69 @@ function ShelterEquipments() {
       {/* 3. TABLERO ELÉCTRICO */}
       <EquipmentItem
         path={electricalPanelModel}
-        position={[0.4, 0.1, -7.1]}
+        position={[-0.65, 0.8, -6.78]}
         rotation={[0, 7.9, 0]}
         scale={0.5}
       />
 
       {/* 4. DETECTOR DE GAS */}
-      <EquipmentItem
+      {/* <EquipmentItem
         path={gasDetectorModel}
         position={[0.5, 0.7, -6.1]}
         rotation={[0, 0, 0]}
         scale={0.3}
+      /> */}
+
+      {/* 5. CÁMARA DOMO (al lado de los balones) */}
+      <DomeCamera
+        position={[-0.5, 1.2, -6.1]}
+        rotation={[1.5, 0, 0]}
+        scale={1.2}
       />
+
+      {/* 6. DETECTOR DE GAS CO/O2/CO2 (debajo de la cámara domo) */}
+      <GasManifold
+        position={[0.5, 0.75, -6.1]}
+        rotation={[0, 0, 0]}
+        scale={1.2}
+      />
+
+      <VentilationPipe
+        position={[0.9, 1.5, -6.1]}
+        rotation={[0, 0, 0]}
+        scale={2}
+      />
+
+      {/* 6. TUBOS FLUORESCENTES EN EL TECHO */}
+      {[-3.0, -5.0].map((z, i) => (
+        <group key={`fluorescent-${i}`} position={[0, 1.71, z]}>
+          {/* Soporte / base metálica */}
+          <mesh>
+            <boxGeometry args={[0.08, 0.03, 0.8]} />
+            <meshStandardMaterial color="#888" metalness={0.8} roughness={0.3} />
+          </mesh>
+          {/* Tubo de vidrio fluorescente */}
+          <mesh position={[0, -0.025, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.015, 0.015, 0.7, 16]} />
+            <meshStandardMaterial
+              color="#ffffff"
+              emissive="#e0f0ff"
+              emissiveIntensity={3}
+              transparent
+              opacity={0.9}
+            />
+          </mesh>
+          {/* Luz que emite el tubo */}
+          <rectAreaLight
+            width={0.1}
+            height={0.7}
+            intensity={5}
+            color="#e0f0ff"
+            position={[0, -0.05, 0]}
+            rotation={[Math.PI / 2, 0, 0]}
+          />
+        </group>
+      ))}
     </group>
   )
 }
@@ -850,7 +904,7 @@ export default function ModelViewer() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
               </svg>
-              {currentModel === camaraAbiertoModel ? 'Cámara Cerrada' : 'Cámara Abierta'}
+              {currentModel === camaraAbiertoModel ? 'Refugio Minero Cerrado' : 'Refugio Minero Abierto'}
             </span>
           </button>
         </div>
